@@ -4,6 +4,7 @@ This modules contains a juce::LowLeveGraphicsContext subclass that renders to an
 
 ** This module is a work in progress! **
 
+
 ## Usage
 
 The context is useful for creating SVG snapshots of components to use in other programs.
@@ -38,6 +39,7 @@ renderer.popGroup();
 
 Using `pushGroup()` will always place the new group inside of any current group (including clip regions).
 
+
 ### Text
 
 By default `juce::Graphics` text drawing methods will invoke the `drawGlyph()` method of the SVG context.
@@ -47,30 +49,6 @@ of `juce::Graphics` have a corresponding method here.
 
 The text methods in this context will render `<text>` elements, with nested `<tspan>` elements
 for multi-line text when needed.
-
-### Macros
-
-Preprocessor macros are a good way to be able to include SVG context commands in the same
-drawing code that's used for the normal graphics context.
-
-For example, you can create a macro to use the SVG context text methods if it's the current
-low level context:
-
-```C++
-
-#define _drawSingleLineText(g, text, startX, baselineY)                                         \
-            if (auto _ctx = dynamic_cast<LowLevelGraphicsSVGRenderer*>(g.getInternalContext())) \
-                _ctx.drawSingleLineText(text, startX, baselineY);                               \
-            else                                                                                \
-                g.drawSingleLineText(text, startX, baselineY);                                  \
-
-void paint(juce::Graphics &g)
-{
-    g.setColour(juce::Colours::black);
-
-    _drawSingleLineText(g, "foobar", 50, 10);
-}
-```
 
 
 # License
