@@ -109,7 +109,9 @@ public:
 
     /** Applies an image mask to subsequent elements.
     */
-    void clipToImageAlpha(const juce::Image&, const juce::AffineTransform&) override;
+    void clipToImageAlpha(
+        const juce::Image&, const juce::AffineTransform&
+    ) override;
 
     /** Checks whether a rectangle overlaps the context's clipping region.
     */

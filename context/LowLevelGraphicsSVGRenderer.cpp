@@ -247,26 +247,26 @@ void LowLevelGraphicsSVGRenderer::setFill(const juce::FillType &fill)
 
         e->setAttribute("gradientUnits", "userSpaceOnUse");
 
-        auto point1 = fill.gradient->point1
+        auto p1 = fill.gradient->point1
             .translated(state->xOffset, state->yOffset);
 
-        auto point2 = fill.gradient->point2
+        auto p2 = fill.gradient->point2
             .translated(state->xOffset, state->yOffset);
 
         if (fill.gradient->isRadial)
         {
-            e->setAttribute("cx", truncateFloat(point1.x));
-            e->setAttribute("cy", truncateFloat(point1.y));
-            e->setAttribute("r",  truncateFloat(point1.getDistanceFrom(point2)));
-            e->setAttribute("fx", truncateFloat(point2.x));
-            e->setAttribute("fy", truncateFloat(point2.y));
+            e->setAttribute("cx", truncateFloat(p1.x));
+            e->setAttribute("cy", truncateFloat(p1.y));
+            e->setAttribute("r",  truncateFloat(p1.getDistanceFrom(p2)));
+            e->setAttribute("fx", truncateFloat(p2.x));
+            e->setAttribute("fy", truncateFloat(p2.y));
         }
         else
         {
-            e->setAttribute("x1", truncateFloat(point1.x));
-            e->setAttribute("y1", truncateFloat(point1.y));
-            e->setAttribute("x2", truncateFloat(point2.x));
-            e->setAttribute("y2", truncateFloat(point2.y));
+            e->setAttribute("x1", truncateFloat(p1.x));
+            e->setAttribute("y1", truncateFloat(p1.y));
+            e->setAttribute("x2", truncateFloat(p2.x));
+            e->setAttribute("y2", truncateFloat(p2.y));
         }
 
         if (!state->transform.isIdentity())
@@ -286,6 +286,7 @@ void LowLevelGraphicsSVGRenderer::setFill(const juce::FillType &fill)
             for (int i = 0; i < fill.gradient->getNumColours(); ++i)
             {
                 auto stop = e->createNewChildElement("stop");
+
                 stop->setAttribute(
                     "offset",
                     truncateFloat((float)fill.gradient->getColourPosition(i))
@@ -297,10 +298,14 @@ void LowLevelGraphicsSVGRenderer::setFill(const juce::FillType &fill)
                 );
 
                 if (fill.gradient->getColour(i).getFloatAlpha() != 1.0f)
+                {
                     stop->setAttribute(
                         "stop-opacity",
-                        truncateFloat(fill.gradient->getColour(i).getFloatAlpha())
+                        truncateFloat(
+                            fill.gradient->getColour(i).getFloatAlpha()
+                        )
                     );
+                }
             }
         }
     }
@@ -344,10 +349,12 @@ void LowLevelGraphicsSVGRenderer::fillRect(const juce::Rectangle<float> &r)
         rect->setAttribute("fill", writeFill());
 
     if (state->fillType.getOpacity() != 1.0f)
+    {
         rect->setAttribute(
             "fill-opacity",
             truncateFloat(state->fillType.getOpacity())
         );
+    }
 
     rect->setAttribute("x", truncateFloat(r.getX() + state->xOffset));
     rect->setAttribute("y", truncateFloat(r.getY() + state->yOffset));
@@ -361,10 +368,14 @@ void LowLevelGraphicsSVGRenderer::fillRectList(
     const juce::RectangleList<float> &r)
 {
     if (exportFlags & ExportFlags::ExpandRectLists)
+    {
         for (auto rect : r)
             fillRect(rect);
+    }
     else
+    {
         fillPath(r.toPath(), juce::AffineTransform());
+    }
 }
 
 void LowLevelGraphicsSVGRenderer::fillPath(
@@ -388,10 +399,12 @@ void LowLevelGraphicsSVGRenderer::fillPath(
         path->setAttribute("fill", writeFill());
 
     if (state->fillType.getOpacity() != 1.0f)
+    {
         path->setAttribute(
             "fill-opacity",
             truncateFloat(state->fillType.getOpacity())
         );
+    }
 
     if (!p.isUsingNonZeroWinding())
         path->setAttribute("fill-rule", "evenodd");
@@ -418,10 +431,12 @@ void LowLevelGraphicsSVGRenderer::drawImage(
     image->setAttribute("image-rendering", writeImageQuality());
 
     if (!t.isIdentity())
+    {
         image->setAttribute(
             "transform",
             writeTransform(state->transform.followedBy(t))
         );
+    }
 
     juce::MemoryOutputStream out;
     juce::PNGImageFormat png;
@@ -451,10 +466,12 @@ void LowLevelGraphicsSVGRenderer::drawLine(const juce::Line<float> &l)
         line->setAttribute("stroke", writeFill());
 
     if (state->fillType.getOpacity() != 1.0f)
+    {
         line->setAttribute(
             "stroke-opacity",
             truncateFloat(state->fillType.getOpacity())
         );
+    }
 
     if (!state->transform.isIdentity())
         line->setAttribute("transform", writeTransform(state->transform));
@@ -581,6 +598,7 @@ void LowLevelGraphicsSVGRenderer::drawMultiLineText(
             auto line = t2;
 
             int i = 0;
+
             while (f.getStringWidth(line) > maximumLineWidth)
             {
                 line = line.dropLastCharacters(1);
@@ -651,9 +669,7 @@ void LowLevelGraphicsSVGRenderer::drawText(
             : "";
 
         while (f.getStringWidth(t2 + ellipses) > width)
-        {
             t2 = t2.dropLastCharacters(1);
-        }
 
         t2 += ellipses;
     }
@@ -779,13 +795,13 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
     else
     {
         auto len = f.getStringWidth(t2);
+
         if (len > width)
         {
             while (f.getStringWidth(t2) > width)
-            {
                 t2 = t2.dropLastCharacters(1);
-            }
         }
+
         text->addTextElement(t2);
     }
 
@@ -860,9 +876,11 @@ juce::String LowLevelGraphicsSVGRenderer::truncateFloat(float value)
 {
     auto string = juce::String(value, 2);
 
-    while (string.getLastCharacters(1) == "." ||
-          (string.getLastCharacters(1) == "0" && string.contains(".")))
-            string = string.dropLastCharacters(1);
+    while (string.getLastCharacters(1) == "0" && string.contains("."))
+        string = string.dropLastCharacters(1);
+
+    if (string.endsWith("."))
+        string = string.dropLastCharacters(1);
 
     return string;
 }
@@ -870,26 +888,12 @@ juce::String LowLevelGraphicsSVGRenderer::truncateFloat(float value)
 juce::String LowLevelGraphicsSVGRenderer::getPreviousGradientRef(
     juce::ColourGradient *g)
 {
-    if (previousGradients.size() == 0)
-    {
-        jassert(state->gradientRef.isNotEmpty());
-
-        GradientRef newRef;
-        newRef.gradient = *g;
-        newRef.ref = state->gradientRef;
-
-        previousGradients.add(newRef);
-        return "";
-    }
-
     for (auto r : previousGradients)
     {
         auto previousGradient = &r.gradient;
 
         if (previousGradient->getNumColours() != g->getNumColours())
             continue;
-
-        bool match = false;
 
         for (int i = 0; i < previousGradient->getNumColours(); ++i)
         {
@@ -902,11 +906,8 @@ juce::String LowLevelGraphicsSVGRenderer::getPreviousGradientRef(
             if (g->getColourPosition(i) != pos)
                 break;
 
-            match = true;
-        }
-
-        if (match)
             return r.ref;
+        }
     }
 
     jassert(state->gradientRef.isNotEmpty());

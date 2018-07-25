@@ -38,8 +38,6 @@
 
 #pragma once
 
-#define SVGDOCTYPE "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">"
-
 #include <juce_graphics/juce_graphics.h>
 
 // =============================================================================
@@ -58,6 +56,12 @@
 #ifndef SVG_USE_CONTEXT_HELPERS
   #define SVG_USE_CONTEXT_HELPERS 0
 #endif
+
+// =============================================================================
+
+static const juce::StringRef SVG_DOCTYPE =
+    "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" "
+    "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">";
 
 // =============================================================================
 
