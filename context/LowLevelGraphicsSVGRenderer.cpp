@@ -121,7 +121,7 @@ void LowLevelGraphicsSVGRenderer::clipToPath(
     const juce::Path &p,
     const juce::AffineTransform &t)
 {
-    auto temp = p;
+    juce::Path temp = p;
     temp.applyTransform(t.translated(state->xOffset, state->yOffset));
     setClip(temp);
 }
@@ -130,23 +130,24 @@ void LowLevelGraphicsSVGRenderer::clipToImageAlpha(
     const juce::Image &i,
     const juce::AffineTransform &t)
 {
-    auto maskImage = i;
+    juce::Image maskImage = i;
 
     #if !JUCE_MAC
       if (i.getFormat() != juce::Image::ARGB)
           maskImage = i.convertedToFormat(juce::Image::SingleChannel);
     #endif
 
-    auto defs = document->getChildByName("defs");
-    auto maskRef = juce::String::formatted(
+    juce::XmlElement *defs = document->getChildByName("defs");
+
+    const juce::String maskRef = juce::String::formatted(
         "#Mask%d",
         defs->getNumChildElements()
     );
 
-    auto mask = defs->createNewChildElement("mask");
+    juce::XmlElement *mask = defs->createNewChildElement("mask");
     mask->setAttribute("id", maskRef.replace("#", ""));
 
-    auto image = mask->createNewChildElement("image");
+    juce::XmlElement *image = mask->createNewChildElement("image");
     image->setAttribute("x", state->xOffset);
     image->setAttribute("y", state->yOffset);
     image->setAttribute("width", i.getWidth());
@@ -155,16 +156,19 @@ void LowLevelGraphicsSVGRenderer::clipToImageAlpha(
     image->setAttribute("image-rendering", writeImageQuality());
 
     if (!t.isIdentity())
+    {
         image->setAttribute(
-            "transform",
-            writeTransform(state->transform.followedBy(t))
+            "transform", writeTransform(state->transform.followedBy(t))
         );
+    }
 
     juce::MemoryOutputStream out;
-    juce::PNGImageFormat png;
+    juce::PNGImageFormat     png;
     png.writeImageToStream(maskImage, out);
 
-    auto base64Data = juce::Base64::toBase64(out.getData(), out.getDataSize());
+    const juce::String base64Data = juce::Base64::toBase64(
+        out.getData(), out.getDataSize()
+    );
 
     image->setAttribute("xlink:href", "data:image/png;base64," + base64Data);
 
@@ -175,7 +179,10 @@ void LowLevelGraphicsSVGRenderer::clipToImageAlpha(
 bool LowLevelGraphicsSVGRenderer::clipRegionIntersects(
     const juce::Rectangle<int> &r)
 {
-    auto rect = r.translated(state->xOffset, state->yOffset).toFloat();
+    const juce::Rectangle<float> rect = r.translated(
+        state->xOffset, state->yOffset
+    ).toFloat();
+
     return state->clipPath.getBounds().intersects(rect);
 }
 
@@ -225,14 +232,14 @@ void LowLevelGraphicsSVGRenderer::setFill(const juce::FillType &fill)
 
     if (fill.isGradient())
     {
-        auto defs = document->getChildElement(0);
+        juce::XmlElement *defs = document->getChildElement(0);
         jassert(defs);
 
-        juce::String gradientType = (fill.gradient->isRadial)
+        const juce::String gradientType = (fill.gradient->isRadial)
             ? "radialGradient"
             : "linearGradient";
 
-        auto e = defs->createNewChildElement(gradientType);
+        juce::XmlElement *e = defs->createNewChildElement(gradientType);
 
         state->gradientRef = juce::String::formatted(
             "#Gradient%d",
@@ -243,10 +250,10 @@ void LowLevelGraphicsSVGRenderer::setFill(const juce::FillType &fill)
 
         e->setAttribute("gradientUnits", "userSpaceOnUse");
 
-        auto p1 = fill.gradient->point1
+        const juce::Point<float> p1 = fill.gradient->point1
             .translated(state->xOffset, state->yOffset);
 
-        auto p2 = fill.gradient->point2
+        const juce::Point<float> p2 = fill.gradient->point2
             .translated(state->xOffset, state->yOffset);
 
         if (fill.gradient->isRadial)
@@ -266,12 +273,14 @@ void LowLevelGraphicsSVGRenderer::setFill(const juce::FillType &fill)
         }
 
         if (!state->transform.isIdentity())
+        {
             e->setAttribute(
                 "gradientTransform",
                 writeTransform(state->transform)
             );
+        }
 
-        auto prevRef = getPreviousGradientRef(fill.gradient);
+        const juce::String prevRef = getPreviousGradientRef(*fill.gradient);
 
         if (prevRef.isNotEmpty())
         {
@@ -281,7 +290,7 @@ void LowLevelGraphicsSVGRenderer::setFill(const juce::FillType &fill)
         {
             for (int i = 0; i < fill.gradient->getNumColours(); ++i)
             {
-                auto stop = e->createNewChildElement("stop");
+                juce::XmlElement *stop = e->createNewChildElement("stop");
 
                 stop->setAttribute(
                     "offset",
@@ -360,7 +369,7 @@ void LowLevelGraphicsSVGRenderer::fillRectList(
 {
     if (exportFlags & ExportFlags::ExpandRectLists)
     {
-        for (auto rect : r)
+        for (const juce::Rectangle<float> &rect : r)
             fillRect(rect);
     }
     else
@@ -375,7 +384,7 @@ void LowLevelGraphicsSVGRenderer::fillPath(
 {
     juce::XmlElement *path = createNewElement("path");
 
-    auto temp = p;
+    juce::Path temp = p;
     temp.applyTransform(t.translated(state->xOffset, state->yOffset));
 
     juce::String d = temp.toString().removeCharacters("a");
@@ -423,7 +432,10 @@ void LowLevelGraphicsSVGRenderer::drawImage(
     juce::PNGImageFormat png;
     png.writeImageToStream(i, out);
 
-    auto base64Data = juce::Base64::toBase64(out.getData(), out.getDataSize());
+    const juce::String base64Data = juce::Base64::toBase64(
+        out.getData(), out.getDataSize()
+    );
+
     image->setAttribute("xlink:href", "data:image/png;base64," + base64Data);
 
     applyTags(image);
@@ -473,10 +485,10 @@ void LowLevelGraphicsSVGRenderer::drawGlyph(
     const juce::AffineTransform &t)
 {
     juce::Path p;
-    juce::Font &f = state->font;
+    const juce::Font &f = state->font;
     f.getTypeface()->getOutlineForGlyph(glyphNumber, p);
 
-    auto glyphTransform = juce::AffineTransform::scale(
+    const juce::AffineTransform glyphTransform = juce::AffineTransform::scale(
         f.getHeight() * f.getHorizontalScale(),
         f.getHeight()
     ).followedBy(t);
@@ -497,8 +509,8 @@ void LowLevelGraphicsSVGRenderer::drawSingleLineText(
 {
     juce::XmlElement *text = createNewElement("text");
 
-    auto f = state->font;
-    auto tf = f.getTypeface();
+    const juce::Font f = state->font;
+    const juce::Typeface *tf = f.getTypeface();
 
     text->setAttribute("x", startX);
     text->setAttribute("y", baselineY - f.getHeight());
@@ -538,8 +550,8 @@ void LowLevelGraphicsSVGRenderer::drawMultiLineText(
 {
     juce::XmlElement *text = createNewElement("text");
 
-    auto f = state->font;
-    auto tf = f.getTypeface();
+    const juce::Font f = state->font;
+    const juce::Typeface *tf = f.getTypeface();
 
     text->setAttribute("x", startX);
     text->setAttribute("y", baselineY - f.getHeight());
@@ -553,15 +565,13 @@ void LowLevelGraphicsSVGRenderer::drawMultiLineText(
     if (!state->transform.isIdentity())
         text->setAttribute("transform", writeTransform(state->transform));
 
-    auto t2 = t;
+    juce::String t2 = t;
 
     while (t2.isNotEmpty())
     {
-        int len = f.getStringWidth(t2);
-
-        if (len > maximumLineWidth)
+        if (f.getStringWidth(t2) > maximumLineWidth)
         {
-            auto line = t2;
+            juce::String line = t2;
 
             int i = 0;
 
@@ -571,7 +581,7 @@ void LowLevelGraphicsSVGRenderer::drawMultiLineText(
                 i++;
             }
 
-            auto tspan = text->createNewChildElement("tspan");
+            juce::XmlElement *tspan = text->createNewChildElement("tspan");
             tspan->setAttribute("x", startX);
             tspan->setAttribute("y", baselineY);
             tspan->addTextElement(line);
@@ -582,12 +592,12 @@ void LowLevelGraphicsSVGRenderer::drawMultiLineText(
         }
         else
         {
-            auto tspan = text->createNewChildElement("tspan");
+            juce::XmlElement *tspan = text->createNewChildElement("tspan");
             tspan->setAttribute("x", startX);
             tspan->setAttribute("y", baselineY);
             tspan->addTextElement(t2);
 
-            t2 = "";
+            break;
         }
     }
 
@@ -605,8 +615,8 @@ void LowLevelGraphicsSVGRenderer::drawText(
 {
     juce::XmlElement *text = createNewElement("text");
 
-    auto f = state->font;
-    auto tf = f.getTypeface();
+    const juce::Font f = state->font;
+    const juce::Typeface *tf = f.getTypeface();
 
     applyTextPos(t, text, x, y, width, height, justification);
 
@@ -620,10 +630,9 @@ void LowLevelGraphicsSVGRenderer::drawText(
     if (!state->transform.isIdentity())
         text->setAttribute("transform", writeTransform(state->transform));
 
-    auto t2 = t;
+    juce::String t2 = t;
 
-    auto len = f.getStringWidth(t);
-    if (len > width)
+    if (f.getStringWidth(t) > width)
     {
         juce::String ellipses = (useEllipsesIfTooBig)
             ? juce::String(juce::CharPointer_UTF8("\xe2\x80\xa6"))
@@ -686,8 +695,8 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
 {
     juce::XmlElement *text = createNewElement("text");
 
-    auto f = state->font;
-    auto tf = f.getTypeface();
+    const juce::Font f = state->font;
+    const juce::Typeface *tf = f.getTypeface();
 
     applyTextPos(t, text, x, y, width, height, justification);
 
@@ -705,17 +714,15 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
     if (writeFill() != "rgb(0,0,0)")
         text->setAttribute("fill", writeFill());
 
-    auto t2 = t;
+    juce::String t2 = t;
 
     if (maximumNumberOfLines > 1)
     {
         while (t2.isNotEmpty())
         {
-            int len = t2.length();
-
-            if (len > width)
+            if (t2.length() > width)
             {
-                auto line = t2;
+                juce::String line = t2;
 
                 int i = 0;
                 while (f.getStringWidth(line) > width)
@@ -724,7 +731,7 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
                     i++;
                 }
 
-                auto tspan = text->createNewChildElement("tspan");
+                juce::XmlElement *tspan = text->createNewChildElement("tspan");
                 tspan->setAttribute("x", x);
                 tspan->setAttribute("y", y);
                 tspan->setAttribute("text-anchor", "auto");
@@ -737,7 +744,7 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
             }
             else
             {
-                auto tspan = text->createNewChildElement("tspan");
+                juce::XmlElement *tspan = text->createNewChildElement("tspan");
                 tspan->setAttribute("x", x);
                 tspan->setAttribute("y", y);
                 tspan->setAttribute("text-anchor", "auto");
@@ -750,13 +757,8 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
     }
     else
     {
-        auto len = f.getStringWidth(t2);
-
-        if (len > width)
-        {
-            while (f.getStringWidth(t2) > width)
-                t2 = t2.dropLastCharacters(1);
-        }
+        while (f.getStringWidth(t2) > width)
+            t2 = t2.dropLastCharacters(1);
 
         text->addTextElement(t2);
     }
@@ -798,7 +800,7 @@ void LowLevelGraphicsSVGRenderer::popGroup()
 
     if (state->clipGroup->hasAttribute("id"))
     {
-        auto temp = state->clipGroup;
+        juce::XmlElement *temp = state->clipGroup;
 
         state->clipGroup = document->findParentElementOf(state->clipGroup);
 
@@ -835,7 +837,7 @@ juce::XmlElement* LowLevelGraphicsSVGRenderer::createNewElement(
 
 juce::String LowLevelGraphicsSVGRenderer::truncateFloat(float value)
 {
-    auto string = juce::String(value, 2);
+    juce::String string = juce::String(value, 2);
 
     while (string.getLastCharacters(1) == "0" && string.contains("."))
         string = string.dropLastCharacters(1);
@@ -847,24 +849,19 @@ juce::String LowLevelGraphicsSVGRenderer::truncateFloat(float value)
 }
 
 juce::String LowLevelGraphicsSVGRenderer::getPreviousGradientRef(
-    juce::ColourGradient *g)
+    const juce::ColourGradient &target)
 {
-    for (auto r : previousGradients)
+    for (const GradientRef &r : previousGradients)
     {
-        auto previousGradient = &r.gradient;
-
-        if (previousGradient->getNumColours() != g->getNumColours())
+        if (r.gradient.getNumColours() != target.getNumColours())
             continue;
 
-        for (int i = 0; i < previousGradient->getNumColours(); ++i)
+        for (int i = 0; i < r.gradient.getNumColours(); ++i)
         {
-            auto colour = previousGradient->getColour(i);
-            auto pos    = previousGradient->getColourPosition(i);
-
-            if (g->getColour(i) != colour)
+            if (target.getColour(i) != r.gradient.getColour(i))
                 break;
 
-            if (g->getColourPosition(i) != pos)
+            if (target.getColourPosition(i) != r.gradient.getColourPosition(i))
                 break;
 
             return r.ref;
@@ -874,7 +871,7 @@ juce::String LowLevelGraphicsSVGRenderer::getPreviousGradientRef(
     jassert(state->gradientRef.isNotEmpty());
 
     GradientRef newRef;
-    newRef.gradient = *g;
+    newRef.gradient = target;
     newRef.ref = state->gradientRef;
 
     previousGradients.add(newRef);
@@ -909,22 +906,18 @@ juce::String LowLevelGraphicsSVGRenderer::writeFill()
 
 juce::String LowLevelGraphicsSVGRenderer::writeFont()
 {
-    auto f = state->font;
-    auto tf = f.getTypeface();
+    const juce::Font f = state->font;
+    const juce::Typeface *tf = f.getTypeface();
 
     juce::String result = tf->getName();
 
-    auto serif = juce::Font::getDefaultSerifFontName();
-    auto sans  = juce::Font::getDefaultSansSerifFontName();
-    auto mono  = juce::Font::getDefaultMonospacedFontName();
+    const juce::String fn    = f.getTypefaceName();
 
-    auto fn = f.getTypefaceName();
-
-    if (fn == serif)
+    if (fn == juce::Font::getDefaultSerifFontName())
         result += ", serif";
-    else if (fn == sans)
+    else if (fn == juce::Font::getDefaultSansSerifFontName())
         result += ", sans-serif";
-    else if (fn == mono)
+    else if (fn == juce::Font::getDefaultMonospacedFontName())
         result += ", monospace";
 
     result += ", system-ui";
@@ -952,8 +945,8 @@ void LowLevelGraphicsSVGRenderer::applyTags(juce::XmlElement *e)
     if (state->tags.size() == 0)
         return;
 
-    auto keys   = state->tags.getAllKeys();
-    auto values = state->tags.getAllValues();
+    const juce::StringArray &keys   = state->tags.getAllKeys();
+    const juce::StringArray &values = state->tags.getAllValues();
 
     for (int i = 0; i < state->tags.size(); ++i)
         e->setAttribute(keys[i], values[i]);
@@ -971,13 +964,13 @@ void LowLevelGraphicsSVGRenderer::applyTextPos(
 {
     if (exportFlags & UseAbsoluteTextPositions)
     {
-        auto f = state->font;
+        const juce::Font f = state->font;
 
         // FIXME: getStringWidth() is consistently returning a lower string
         // width than what the actual output looks like when in an editor. Only
         // tested on OSX so far.
-        auto tWidth  = f.getStringWidth(t);
-        auto tHeight = f.getHeight();
+        const int tWidth  = f.getStringWidth(t);
+        const int tHeight = f.getHeight();
 
         if (j.testFlags(j.horizontallyCentred))
         {
@@ -1043,33 +1036,30 @@ void LowLevelGraphicsSVGRenderer::setClip(const juce::Path &p)
     if (p == state->clipPath && state->clipRef.isNotEmpty())
     {
         state->clipGroup = state->clipGroup->createNewChildElement("g");
-        state->clipGroup->setAttribute("clip-path", "url(" + state->clipRef + ")");
+        state->clipGroup->setAttribute(
+            "clip-path", "url(" + state->clipRef + ")"
+        );
     }
     else
     {
         state->clipPath = p;
 
-        auto defs = document->getChildByName("defs");
-        auto clipRef = juce::String::formatted(
-            "#ClipPath%d",
-            defs->getNumChildElements()
+        juce::XmlElement *defs = document->getChildByName("defs");
+
+        const juce::String clipRef = juce::String::formatted(
+            "#ClipPath%d", defs->getNumChildElements()
         );
 
         state->clipRef = clipRef;
 
-        auto clipPath = defs->createNewChildElement("clipPath");
+        juce::XmlElement *clipPath = defs->createNewChildElement("clipPath");
         clipPath->setAttribute("id", clipRef.replace("#", ""));
 
-        auto path = clipPath->createNewChildElement("path");
+        juce::XmlElement *path = clipPath->createNewChildElement("path");
         path->setAttribute("d", state->clipPath.toString().toUpperCase());
 
         if (!state->transform.isIdentity())
-            path->setAttribute(
-                "transform",
-                writeTransform(
-                    state->transform
-                )
-            );
+            path->setAttribute("transform", writeTransform(state->transform));
 
         state->clipGroup = createNewElement("g");
         state->clipGroup->setAttribute("clip-path", "url(" + clipRef + ")");

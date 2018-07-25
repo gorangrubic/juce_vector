@@ -433,7 +433,7 @@ private:
 
     juce::String truncateFloat(float);
 
-    juce::String getPreviousGradientRef(juce::ColourGradient*);
+    juce::String getPreviousGradientRef(const juce::ColourGradient&);
 
     juce::String writeTransform(const juce::AffineTransform&);
     juce::String writeColour(const juce::Colour&);
