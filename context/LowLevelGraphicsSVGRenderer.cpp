@@ -168,11 +168,7 @@ void LowLevelGraphicsSVGRenderer::clipToImageAlpha(
 
     image->setAttribute("xlink:href", "data:image/png;base64," + base64Data);
 
-    if (!state->clipGroup)
-        state->clipGroup = document->createNewChildElement("g");
-
-    state->clipGroup = state->clipGroup->createNewChildElement("g");
-
+    state->clipGroup = createNewElement("g");
     state->clipGroup->setAttribute("mask", "url(" + maskRef + ")");
 }
 
@@ -338,12 +334,7 @@ void LowLevelGraphicsSVGRenderer::fillRect(
 
 void LowLevelGraphicsSVGRenderer::fillRect(const juce::Rectangle<float> &r)
 {
-    juce::XmlElement *rect;
-
-    if (state->clipGroup)
-        rect = state->clipGroup->createNewChildElement("rect");
-    else
-        rect = document->createNewChildElement("rect");
+    juce::XmlElement *rect = createNewElement("rect");
 
     if (writeFill() != "rgb(0,0,0)")
         rect->setAttribute("fill", writeFill());
@@ -382,12 +373,7 @@ void LowLevelGraphicsSVGRenderer::fillPath(
     const juce::Path &p,
     const juce::AffineTransform &t)
 {
-    juce::XmlElement *path;
-
-    if (state->clipGroup)
-        path = state->clipGroup->createNewChildElement("path");
-    else
-        path = document->createNewChildElement("path");
+    juce::XmlElement *path = createNewElement("path");
 
     auto temp = p;
     temp.applyTransform(t.translated(state->xOffset, state->yOffset));
@@ -416,12 +402,7 @@ void LowLevelGraphicsSVGRenderer::drawImage(
     const juce::Image &i,
     const juce::AffineTransform &t)
 {
-    juce::XmlElement *image;
-
-    if (state->clipGroup)
-        image = state->clipGroup->createNewChildElement("image");
-    else
-        image = document->createNewChildElement("image");
+    juce::XmlElement *image = createNewElement("image");
 
     image->setAttribute("x", state->xOffset);
     image->setAttribute("y", state->yOffset);
@@ -450,12 +431,7 @@ void LowLevelGraphicsSVGRenderer::drawImage(
 
 void LowLevelGraphicsSVGRenderer::drawLine(const juce::Line<float> &l)
 {
-    juce::XmlElement *line;
-
-    if (state->clipGroup)
-        line = state->clipGroup->createNewChildElement("line");
-    else
-        line = document->createNewChildElement("line");
+    juce::XmlElement *line = createNewElement("line");
 
     line->setAttribute("x1", truncateFloat(l.getStartX() + state->xOffset));
     line->setAttribute("y1", truncateFloat(l.getStartY() + state->yOffset));
@@ -519,12 +495,7 @@ void LowLevelGraphicsSVGRenderer::drawSingleLineText(
     int baselineY,
     juce::Justification justification)
 {
-    juce::XmlElement *text;
-
-    if (state->clipGroup)
-        text = state->clipGroup->createNewChildElement("text");
-    else
-        text = document->createNewChildElement("text");
+    juce::XmlElement *text = createNewElement("text");
 
     auto f = state->font;
     auto tf = f.getTypeface();
@@ -565,12 +536,7 @@ void LowLevelGraphicsSVGRenderer::drawMultiLineText(
     int baselineY,
     int maximumLineWidth)
 {
-    juce::XmlElement *text;
-
-    if (state->clipGroup)
-        text = state->clipGroup->createNewChildElement("text");
-    else
-        text = document->createNewChildElement("text");
+    juce::XmlElement *text = createNewElement("text");
 
     auto f = state->font;
     auto tf = f.getTypeface();
@@ -637,12 +603,7 @@ void LowLevelGraphicsSVGRenderer::drawText(
     juce::Justification justification,
     bool useEllipsesIfTooBig)
 {
-    juce::XmlElement *text;
-
-    if (state->clipGroup)
-        text = state->clipGroup->createNewChildElement("text");
-    else
-        text = document->createNewChildElement("text");
+    juce::XmlElement *text = createNewElement("text");
 
     auto f = state->font;
     auto tf = f.getTypeface();
@@ -723,12 +684,7 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
     int maximumNumberOfLines,
     float minimumHorizontalScale)
 {
-    juce::XmlElement *text;
-
-    if (state->clipGroup)
-        text = state->clipGroup->createNewChildElement("text");
-    else
-        text = document->createNewChildElement("text");
+    juce::XmlElement *text = createNewElement("text");
 
     auto f = state->font;
     auto tf = f.getTypeface();
@@ -832,11 +788,7 @@ void LowLevelGraphicsSVGRenderer::drawFittedText(
 
 void LowLevelGraphicsSVGRenderer::pushGroup(const juce::String& groupID)
 {
-    if (!state->clipGroup)
-        state->clipGroup = document->createNewChildElement("g");
-    else
-        state->clipGroup = state->clipGroup->createNewChildElement("g");
-
+    state->clipGroup = createNewElement("g");
     state->clipGroup->setAttribute("id", groupID);
 }
 
@@ -871,6 +823,15 @@ void LowLevelGraphicsSVGRenderer::clearTags()
 
 #pragma mark -
 // =============================================================================
+
+juce::XmlElement* LowLevelGraphicsSVGRenderer::createNewElement(
+    const juce::String &name)
+{
+    if (state->clipGroup)
+        return state->clipGroup->createNewChildElement(name);
+    else
+        return document->createNewChildElement(name);
+}
 
 juce::String LowLevelGraphicsSVGRenderer::truncateFloat(float value)
 {
@@ -1110,11 +1071,7 @@ void LowLevelGraphicsSVGRenderer::setClip(const juce::Path &p)
                 )
             );
 
-        if (!state->clipGroup)
-            state->clipGroup = document->createNewChildElement("g");
-        else
-            state->clipGroup = state->clipGroup->createNewChildElement("g");
-
+        state->clipGroup = createNewElement("g");
         state->clipGroup->setAttribute("clip-path", "url(" + clipRef + ")");
     }
 }

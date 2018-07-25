@@ -429,6 +429,8 @@ public:
 #pragma mark - 
 // =============================================================================
 private:
+    juce::XmlElement* createNewElement(const juce::String&);
+
     juce::String truncateFloat(float);
 
     juce::String getPreviousGradientRef(juce::ColourGradient*);
@@ -440,9 +442,6 @@ private:
     juce::String writeImageQuality();
 
     void applyTags(juce::XmlElement*);
-
-    #pragma mark -
-    // =========================================================================
 
     void applyTextPos(
         const juce::String&,
